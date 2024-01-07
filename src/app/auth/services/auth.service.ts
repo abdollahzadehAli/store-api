@@ -34,20 +34,19 @@ export class AuthService {
     try {
       const user = await this.userService.findForLogin(email);
 
-      if (user && comparePassword(password, user.password)) {
-        const payload: JwtPayload = { email };
-        await this.userService.updateByIdTransactional(
-          user.id,
-          { lastLogin: new Date() },
-          user,
-          queryRunner,
-        );
-        await queryRunner.commitTransaction();
-        return new JwtTokenResponseDto(
-          await this.jwtService.signAsync(payload),
-        );
+      if (!user || !comparePassword(password, user.password)) {
+        throw new UnauthorizedException();
       }
-      throw new UnauthorizedException();
+
+      const payload: JwtPayload = { email };
+      await this.userService.updateByIdTransactional(
+        user.id,
+        { lastLogin: new Date() },
+        user,
+        queryRunner,
+      );
+      await queryRunner.commitTransaction();
+      return new JwtTokenResponseDto(await this.jwtService.signAsync(payload));
     } catch (err) {
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();

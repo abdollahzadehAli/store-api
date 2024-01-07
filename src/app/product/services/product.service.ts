@@ -45,6 +45,10 @@ export class ProductService extends BusinessService<Product> {
   async getAll(findAllDto: FindPaginationAdminUserDto, user?: User) {
     const { page, pageSize, search, sortBy, isDesc, createdByMe } = findAllDto;
 
+    if (createdByMe && !user) {
+      throw new UnauthorizedException();
+    }
+
     const query = this.productRepository
       .createQueryBuilder('product')
       .leftJoin('product.createdBy', 'user')
@@ -52,8 +56,6 @@ export class ProductService extends BusinessService<Product> {
 
     if (createdByMe && user) {
       query.andWhere('product.createdById =:userId', { userId: user.id });
-    } else if (createdByMe && !user) {
-      throw new UnauthorizedException();
     }
 
     if (search) {

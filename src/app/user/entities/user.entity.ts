@@ -23,7 +23,7 @@ export class User extends BusinessEntity {
 
   @Column({ nullable: true })
   @Exclude()
-  validationCode: string;
+  verificationCode: string;
 
   @Column({ nullable: true })
   @Exclude()

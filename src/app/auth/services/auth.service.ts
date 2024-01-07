@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtTokenResponseDto } from '../dto/responses/jwt-token.response.dto';
 import { JwtPayload } from '../jwt-payload-interface';
 import { MailService } from '../../mail/services/mail.service';
+import VerificationResponseDto from '../dto/responses/verification.response.dto';
 
 @Injectable()
 export class AuthService {
@@ -69,7 +70,10 @@ export class AuthService {
         throw new UnprocessableEntityException('user already exists');
       }
       const encodedPassword = encodePassword(password);
-      const validationCode = Math.random().toString().split('.')[1].slice(0, 5);
+      const verificationCode = Math.random()
+        .toString()
+        .split('.')[1]
+        .slice(0, 5);
       await this.userService.saveTransactional(
         {
           email,
@@ -77,12 +81,12 @@ export class AuthService {
           lastName,
           password: encodedPassword,
           registrationStatus: RegistrationStatus.PENDING,
-          validationCode,
+          verificationCode,
         },
         null,
         queryRunner,
       );
-      await this.mailService.send(email, validationCode);
+      await this.mailService.send(email, verificationCode);
       await queryRunner.commitTransaction();
     } catch (err) {
       if (queryRunner.isTransactionActive) {
@@ -102,19 +106,21 @@ export class AuthService {
 
     try {
       const user = await this.userService.findForVerification(email);
-
-      if (user && verificationCode == user.validationCode) {
-        await this.userService.updateByIdTransactional(
-          user.id,
-          {
-            registrationStatus: RegistrationStatus.REGISTERED,
-            validationCode: null,
-          },
-          user,
-          queryRunner,
-        );
+      if (!user || verificationCode !== user.verificationCode) {
+        throw new UnauthorizedException();
       }
+
+      await this.userService.updateByIdTransactional(
+        user.id,
+        {
+          registrationStatus: RegistrationStatus.REGISTERED,
+          verificationCode: null,
+        },
+        user,
+        queryRunner,
+      );
       await queryRunner.commitTransaction();
+      return new VerificationResponseDto({ isVerified: true });
     } catch (err) {
       if (queryRunner.isTransactionActive) {
         await queryRunner.rollbackTransaction();

@@ -13,12 +13,12 @@ export class MailService {
     },
   });
 
-  async send(email: string, validationCode: string) {
+  async send(email: string, verificationCode: string) {
     const mailOptions = {
       from: process.env.EMAIL,
       to: email,
-      subject: 'store api validationCode code',
-      text: validationCode,
+      subject: 'store api verification code',
+      text: verificationCode,
     };
     await this.transport.sendMail(mailOptions);
   }

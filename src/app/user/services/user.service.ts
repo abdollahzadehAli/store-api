@@ -15,7 +15,10 @@ export class UserService extends BusinessService<User> {
   }
 
   async findByEmail(email: string) {
-    return await this.userRepository.findOne({ where: { email } });
+    return await this.userRepository.findOne({
+      where: { email },
+      select: ['id'],
+    });
   }
 
   async profile(user: User) {
@@ -26,12 +29,14 @@ export class UserService extends BusinessService<User> {
   async findForVerification(email: string) {
     return await this.userRepository.findOne({
       where: { email, registrationStatus: RegistrationStatus.PENDING },
+      select: ['verificationCode', 'id'],
     });
   }
 
   async findForLogin(email: string) {
     return await this.userRepository.findOne({
       where: { email, registrationStatus: RegistrationStatus.REGISTERED },
+      select: ['email', 'id', 'password'],
     });
   }
 }

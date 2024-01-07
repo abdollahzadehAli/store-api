@@ -19,6 +19,7 @@ export class ProductService extends BusinessService<Product> {
   ) {
     super(productRepository);
   }
+
   async create(createProductDto: CreateProductRequestDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();

@@ -13,6 +13,7 @@ import { LoginDto } from '../dto/requests/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtTokenResponseDto } from '../dto/responses/jwt-token.response.dto';
 import { JwtPayload } from '../jwt-payload-interface';
+import { MailService } from '../../mail/services/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly dataSource: DataSource,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -68,6 +70,7 @@ export class AuthService {
         throw new UnprocessableEntityException('user already exists');
       }
       const encodedPassword = encodePassword(password);
+      const validationCode = Math.random().toString().split('.')[1].slice(0, 5);
       await this.userService.saveTransactional(
         {
           email,
@@ -75,11 +78,12 @@ export class AuthService {
           lastName,
           password: encodedPassword,
           registrationStatus: RegistrationStatus.PENDING,
-          validationCode: Math.random().toString().split('.')[1].slice(0, 5),
+          validationCode,
         },
         null,
         queryRunner,
       );
+      await this.mailService.send(email, validationCode);
       await queryRunner.commitTransaction();
     } catch (err) {
       if (queryRunner.isTransactionActive) {
